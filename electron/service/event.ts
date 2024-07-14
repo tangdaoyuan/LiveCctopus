@@ -9,6 +9,7 @@ export const EVENTS = {
   MEDIA_VIDEO_AUDIO_MERGE: 'media:video:audio:merge',
   LIVE_STREAM_PUSH: 'live:stream:push',
   LIVE_STREAM_PUSH_STOP: 'live:stream:push:stop',
+  LIVE_STREAM_PUSH_RUNNING: 'live:stream:push:running',
   GLOBAL_CONF_UPDATE: 'global_conf:update',
   GLOBAL_CONF_GET: 'global_conf:get',
 } as const

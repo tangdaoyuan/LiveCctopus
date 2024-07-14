@@ -3,6 +3,7 @@
 export interface ILivingStream {
   liveStreamPush: (opts: { url: string, target_path: string }) => Promise<any>
   liveStreamStop: (url: string) => Promise<any>
+  isLiveRunning: (url: string) => Promise<boolean>
 }
 export interface ICommon {
   getPlatformInfo: () => any,

@@ -1,51 +1,91 @@
-import { ChangeEvent, MouseEventHandler, useState } from 'react'
+import { ChangeEvent, MouseEventHandler, useEffect, useState } from 'react'
 // import UpdateElectron from '@/components/update'
-import logoVite from './assets/logo-vite.svg'
-import logoElectron from './assets/logo-electron.svg'
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import Card from '@/components/card'
+import LiveDialog, { type ISubmitParams } from '@/components/liveInfo';
+import { Add20Filled } from '@ricons/fluent'
+import { Icon } from '@ricons/utils'
+import IconButton from '@mui/material/IconButton';
+
 import './App.css'
+import { readLiveList, saveLiveList } from './util/storage';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      dark: '#7994e5',
+      main: '#7994e5',
+    },
+    text: {
+      // primary: '#ffab00',
+    }
+  },
+})
 
 function App() {
-  const [url, setUrl] = useState('')
-  const [path, setPath] = useState('')
+  const [open, setOpen] = useState(false)
+  const [cardData, setCardData] = useState<ISubmitParams[]>([])
 
-  const handleInput = (event: ChangeEvent<HTMLInputElement>) => {
-    setUrl(event.target.value)
+
+  useEffect(() => {
+    setCardData(readLiveList())
+  }, [])
+
+  function openDialog() {
+    setOpen(true)
   }
-
-  const streamPusher = async () => {
-    const ret = await window.common.openFile()
-
-    console.log(ret)
-    if (ret.cancel) {
-      return
-    }
-    setPath(ret.file_path)
-    const res = await window.living.liveStreamPush({
-      url,
-      target_path: ret.file_path,
+  function closeDialog() {
+    setOpen(false)
+  }
+  function handleSubmit(data: ISubmitParams) {
+    setCardData((d) => {
+      d.push(data)
+      saveLiveList(d)
+      return d
     })
-    console.log(res)
+    closeDialog()
   }
 
-  const streamStop = async () => {
-    const res = await window.living.liveStreamStop(url)
-    console.log(res)
+  function updateCard(data: ISubmitParams) {
+    const list = cardData.map(c => {
+      if (c.name === data.name) {
+        console.log(data)
+        return data
+      }
+      return c
+    })
+    setCardData(list)
+    saveLiveList(list)
+
   }
+
+  function removeCard(url: string) {
+    const list = cardData.filter(c => c.url !== url)
+    setCardData(list)
+    saveLiveList(list)
+  }
+
+  function cardRender() {
+    return cardData.map(d => <Card key={d.url} data={d} remove={removeCard} update={updateCard} />)
+  }
+
 
   return (
-    <div className='App'>
-      <div className='w-full'>
-        <div className='w-full'>
-          <input value={url} type="text" onChange={handleInput} />
-        </div>
-        <div className='w-full'>
-          <input value={path} type="text" readOnly={true} />
-        </div>
-        <button onClick={streamPusher}>推流</button>
-        <button onClick={streamStop}>停止</button>
+    <ThemeProvider theme={darkTheme}>
+      <div className='App flex flex-wrap gap-8' >
+        {cardRender()}
+        <IconButton onClick={openDialog}>
+          <Icon size={200}>
+            {/* 
+          // @ts-ignore */}
+            <Add20Filled />
+          </Icon>
+        </IconButton>
       </div>
+      <LiveDialog open={open} close={closeDialog} submit={handleSubmit} />
       {/* <UpdateElectron /> */}
-    </div>
+    </ThemeProvider>
   )
 }
 

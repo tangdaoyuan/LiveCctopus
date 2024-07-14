@@ -3,8 +3,16 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
+import logger from 'electron-log'
 import { update } from './update'
 import '../service'
+import { createTray } from './tray'
+
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+  process.exit(0)
+}
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -25,6 +33,12 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
+logger.initialize();
+if (VITE_DEV_SERVER_URL) {
+  logger.transports.file.level = false;
+}
+
+
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST
@@ -40,6 +54,7 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0)
 }
 
+let realQuit: boolean = false
 let win: BrowserWindow | null = null
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
@@ -48,6 +63,8 @@ async function createWindow() {
   win = new BrowserWindow({
     title: 'Main window',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    width: 1920,
+    height: 1080,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -57,8 +74,17 @@ async function createWindow() {
       // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
       // contextIsolation: false,
     },
+    show: false,
   })
 
+  win.on('close', e => {
+    if (!realQuit) {
+      e.preventDefault()
+      win?.hide()
+    }
+  })
+
+  win.setMenuBarVisibility(false)
   if (VITE_DEV_SERVER_URL) { // #298
     win.loadURL(VITE_DEV_SERVER_URL)
     // Open devTool if the app is not packaged
@@ -66,6 +92,11 @@ async function createWindow() {
   } else {
     win.loadFile(indexHtml)
   }
+
+  win.on('ready-to-show', () => {
+    win?.show()
+    win?.maximize()
+  })
 
   // Test actively push message to the Electron-Renderer
   win.webContents.on('did-finish-load', () => {
@@ -82,7 +113,25 @@ async function createWindow() {
   update(win)
 }
 
-app.whenReady().then(createWindow)
+async function init() {
+  try {
+    const options = {
+      quitCB: () => {
+        realQuit = true
+      },
+      getMainWin: () => {
+        return win!
+      }
+    }
+    await createTray(options)()
+    await createWindow()
+  } catch (error) {
+    logger.error(error)
+  }
+}
+
+
+app.whenReady().then(init)
 
 app.on('window-all-closed', () => {
   win = null

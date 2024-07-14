@@ -19,6 +19,19 @@ global.LIVE_SYMBOL = new Map<string, FFmpeg.FfmpegCommand>()
 // Electron IPC Handle
 ipcMain.handle(EVENTS.LIVE_STREAM_PUSH, async (_, options) => await liveStreamPush(options))
 ipcMain.handle(EVENTS.LIVE_STREAM_PUSH_STOP, async (_, url) => await stopLiveStreamPush(url))
+ipcMain.handle(EVENTS.LIVE_STREAM_PUSH_RUNNING, async (_, url) => await isLiveRunning(url))
+
+
+async function isLiveRunning(url: string) {
+  return await new Promise(resolve => {
+    if (global.LIVE_SYMBOL.has(url)) {
+      resolve(true)
+    }
+    resolve(false)
+  })
+
+}
+
 
 // Actually service
 async function liveStreamPush(options: ILiveStreamOptions) {
@@ -34,14 +47,13 @@ async function liveStreamPush(options: ILiveStreamOptions) {
         .on("start", function (commandLine) {
           Logger.info(`Live Stream Start Command: ${commandLine}`);
           (global.LIVE_SYMBOL).set(url, cmd)
+        })
+        .on('codecData', function () {
           resolve(ResultWrapper.SUCCESS(''))
         })
         .on('end', function (_stdout, _stderr) {
           Logger.info(`Live Stream End: ${url}`);
           (global.LIVE_SYMBOL).delete(url)
-        })
-        .on('progress', function (progress) {
-          Logger.debug(`Processing: ${progress.percent} % done`);
         })
         .on('error', function (err) {
           Logger.error(err);
@@ -77,4 +89,10 @@ async function stopLiveStreamPush(url: string) {
       (global.LIVE_SYMBOL).delete(url)
     }
   })
+}
+
+export async function StopAllLiveStream() {
+  for (const url of global.LIVE_SYMBOL.keys()) {
+    await stopLiveStreamPush(url)
+  }
 }
