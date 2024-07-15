@@ -1,6 +1,6 @@
 {
   "name": "live-cctopus",
-  "version": "2.2.0",
+  "version": "1.0.0",
   "main": "dist-electron/main/index.js",
   "description": "Live Octopus For living helper",
   "author": "teddy <1197633750@qq.com>",
