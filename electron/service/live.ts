@@ -54,10 +54,12 @@ async function liveStreamPush(options: ILiveStreamOptions) {
         .on('end', function (_stdout, _stderr) {
           Logger.info(`Live Stream End: ${url}`);
           (global.LIVE_SYMBOL).delete(url)
+          resolve(ResultWrapper.SUCCESS(''))
         })
         .on('error', function (err) {
           Logger.error(err);
           (global.LIVE_SYMBOL).delete(url)
+          resolve(ResultWrapper.ERROR(''))
         })
         .outputFormat('flv')
         .output(url)
