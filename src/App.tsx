@@ -50,7 +50,6 @@ function App() {
   function updateCard(data: ISubmitParams) {
     const list = cardData.map(c => {
       if (c.name === data.name) {
-        console.log(data)
         return data
       }
       return c

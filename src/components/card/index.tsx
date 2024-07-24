@@ -76,7 +76,6 @@ const LiveCard = (props: IProps) => {
         url: `${data.url}${data.key}`,
         target_path: ret.file_path,
       })
-      console.log(res)
       if (res.code === 0) {
         setRunning(true)
         return
